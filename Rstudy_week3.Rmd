@@ -1,0 +1,257 @@
+---
+title: "Rstudy_week3"
+author: "DKLee"
+date: "2023-11-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#dplyr 패키지
+
+```{r}
+install.packages('dplyr')
+library(dplyr)
+```
+
+```{r}
+nrow(mtcars)
+str(mtcars)
+```
+# 조건에 맞는 데이터 추출
+```{r}
+filter(mtcars, cyl==4)
+filter(mtcars, cyl >= 6 & mpg > 20)
+```
+
+```{r}
+head(select(mtcars, am, gear))
+```
+# 데이터 정렬하기
+```{r}
+head(arrange(mtcars, wt))
+# wt기준으로 오름차순 정렬.
+head(arrange(mtcars, mpg, desc(wt)))
+# mpg 기준으로 오름차순 정렬 후, 같은 값일경우 wt 기준으로 내림차순 정렬.
+```
+# 데이터에 열 추가하기
+```{r}
+mutate(mtcars, years = '1974')
+mutate(mtcars, mpg_rank = rank(mpg))
+# mpg의 데이터 순위를 열로 만듦.
+```
+# 중복 값 제거하기
+```{r}
+distinct(mtcars, cyl)
+# cly값이 겹치는 행 첫 행 제외하고 모두 제거.
+distinct(mtcars, gear)
+distinct(mtcars, cyl, gear)
+# 여러 열 지정시 각 열에서 중복값이 제거되는것이 아닌 지정한 열의 모든 값이
+# 동일한 행들이 제거됨.
+# 중복 값을 제거하면 해당 열이 몇 가지 관측치로 구성되어있는지 확인 가능.
+```
+# 데이터 요약하기
+```{r}
+summarise(mtcars, cyl_mean = mean(cyl), cyl_min = min(cyl), cyl_max = max(cyl))
+summarise(mtcars, mean(cyl), min(cyl), max(cyl))
+# 이름 지정해도 되고 안해도 됨.
+
+gr_cyl = group_by(mtcars, cyl)
+summarize(gr_cyl, n())
+# 그룹별로 요약하기
+
+summarise(gr_cyl, n_distinct(gear))
+# cyl열 그룹에서 gear값이 중복인 데이터를 제외한 개수.
+```
+# 샘플 추출하기
+```{r}
+sample_n(mtcars, 10)
+# 개수 기준으로 샘플 데이터 추출.
+sample_frac(mtcars, 0.2)
+# 전체 데이터의 0.2를 추출. 비율 기준.
+```
+# 파이프 연산자
+```{r}
+group_by(mtcars, cyl) %>% summarise(n())
+# 새로운 변수에 저장할 필요 없이 데이터와 함수를 연결하여 사용 가능.
+mutate(mtcars, mpg_rank = rank(mpg)) %>% arrange(mpg_rank)
+#mp_rank = mutate(mtcars, mpg_rank = rank(mpg))
+#arrange(mp_rank, mpg_rank) 과 동일.
+```
+
+
+```{r}
+library(readxl)
+exdata1 = read_excel("C:/Rstudy/Sample1.xlsx")
+```
+
+# 선택한 변수만 추출하기
+```{r}
+exdata1 %>% select(ID)
+exdata1 %>% select(ID, AREA, Y21_CNT)
+# 주로 열 추출에 사용됨.
+exdata1 %>% select(-AREA, -Y21_CNT)
+# 특정 열 제외도 가능.
+```
+
+# 필요한 데이터만 추출하기
+```{r}
+exdata1 %>% filter(AREA == '서울' & Y21_CNT >= 10)
+
+```
+
+# 데이터 정렬하기
+```{r}
+exdata1 %>% arrange(AGE)
+# 기본 오름차순 정렬.
+exdata1 %>% arrange(desc(Y21_AMT))
+# 내림차순 정렬 옵션.
+exdata1 %>% arrange(AGE, desc(Y21_AMT))
+# 중첩정렬.
+```
+
+# 데이터 요약하기
+```{r}
+exdata1 %>% summarise(TOT_T21_AMT = sum(Y21_AMT))
+# 구분 없이 Y21_AMT의 총 합계 구하기.
+exdata1 %>% group_by(AREA) %>% summarise(SUM = sum(Y21_AMT))
+# AREA를 기준으로 각 지역 별 Y21_AMT의 합계 구하기.
+```
+
+```{r}
+m_history = read_excel("C:/Rstudy/Sample2_m_history.xlsx")
+f_history = read_excel("C:/Rstudy/Sample3_f_history.xlsx")
+```
+
+# 데이터 세로 결합하기
+```{r}
+exdata_bindjoin = bind_rows(m_history, f_history)
+View(exdata_bindjoin)
+# axis = 0 방향으로 결합. 
+
+```
+
+```{r}
+jeju_y21 = read_excel("C:/Rstudy/Sample4_y21_history.xlsx")
+jeju_y20 = read_excel("C:/Rstudy/Sample5_y20_history.xlsx")
+```
+
+# 데이터 가로 결합하기
+```{r}
+left_join(jeju_y21, jeju_y20, by = "ID")
+# 첫 번째 테이블 기준으로 가로 결합하기. right_join도 있음.
+inner_join(jeju_y21, jeju_y20, by = 'ID')
+# ID 변수가 동일할 때만 가로로 결합.
+full_join(jeju_y21, jeju_y20, by = 'ID')
+# ID 기준으로 모든 데이터 가로 결합.
+```
+
+
+### 데이터 구조 변형하기
+
+```{r}
+install.packages('reshape2')
+library(reshape2)
+
+head(airquality)
+names(airquality) = tolower(names(airquality))
+# 변수명 소문자로 바꾸기.
+```
+
+# 열을 행으로 바꾸기
+```{r}
+melt_test = melt(airquality)
+melt_test2 = melt(airquality, id.vars = c('month', 'wind'),
+                  measure.vars = 'ozone')
+# id.vars : 식별자 변수, measure.vars : 반환하는 값
+head(melt_test2)
+```
+
+# 행을 열로 바꾸기
+```{r}
+aq_melt = melt(airquality, id.vars = c('month','day'), na.rm = FALSE)
+View(aq_melt)
+
+aq_dcast = dcast(aq_melt, month + day ~ variable)
+# 기준 변수 : month, day  
+# 데이터 프레임으로 반환.
+head(aq_dcast)
+
+acast(aq_melt, day ~ month ~ variable)
+# 기준 변수 : day, month
+# array로 반환.
+```
+
+# 데이터 요약하기
+```{r}
+acast(aq_melt, month ~ variable, mean)
+# month 기준으로 각 변수별 평균 구하기.
+dcast(aq_melt, month ~ variable, sum)
+```
+
+### 데이터 정제하기 - 이상치 및 결측치 처리
+
+# 결측치 확인하기
+```{r}
+x = c(1,2,NA,4,5)
+sum(x)
+is.na(x)
+table(is.na(x))
+```
+
+# 결측치 제외하기
+```{r}
+sum(x, na.rm = TRUE)
+```
+
+# 결측치 개수 확인하기
+```{r}
+sum(is.na(airquality))
+# 전체 데이터의 결측치 개수.
+table(is.na(airquality))
+colSums(is.na(airquality))
+# 변수 별 결측치 개수.
+```
+
+# 결측치 제거하기
+```{r}
+na.omit(airquality)
+# 결측치가 있는 행을 제거함.
+```
+
+# 결측치 대체하기
+```{r}
+airquality[is.na(airquality)] = 0
+colSums(is.na(airquality))
+```
+
+# 이상치 확인하기
+```{r}
+boxplot(mtcars$wt)
+boxplot(mtcars$wt)$stats
+# boxplot에 그려진 값들을 기술통계량으로 확인.
+```
+
+# 이상치 처리하기
+```{r}
+mtcars$wt = ifelse(mtcars$wt > 5.25, NA, mtcars$wt)
+# 조건, 조건이 참일때, 조건이 거짓일때.
+mtcars$wt
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
