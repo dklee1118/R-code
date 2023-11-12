@@ -1,0 +1,155 @@
+---
+title: "Rstudy_week4"
+author: "DKLee"
+date: "2023-11-11"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 빈도분석하고 시각화하기
+
+## 데이터 준비하기
+```{r}
+library(readxl)
+forest = read_excel('C:/Rstudy/forest_example_data.xls')
+View(forest)
+colnames(forest) = c('name','city','gubun','area','number','stay','city_new',
+                     'code','codename')
+str(forest)
+head(forest)
+```
+## 빈도분석하기
+```{r}
+library(descr)
+freq(forest$city, plot = T, main = 'city')
+```
+```{r}
+city_table = table(forest$city)
+city_table
+barplot(city_table)
+```
+```{r}
+# 위의 plot은 보기 어려우니 빈도순으로 정렬. 
+library(dplyr)
+count(forest, city) %>% arrange(desc(n))
+# count : city열과 빈도n열 df반환
+# arrange : 변수n을 내림차순 정렬
+```
+```{r}
+count(forest, city_new) %>% arrange(desc(n))
+```
+```{r}
+count(forest, codename) %>% arrange(desc(n))
+```
+
+
+# 해외 입국자 추이 확인하기
+
+## 데이터 재구조화하기
+```{r}
+library(readxl)
+entrance = read_excel('C:/Rstudy/entrance.xls')
+
+str(entrance)
+head(entrance)
+```
+## 칼럼명 변경 및 공백 제거하기
+```{r}
+colnames(entrance) = c('country','JAN','FEB','MAR','APR','MAY',"JUN",
+                       'JUL','AUG','SEP','OCT','NOV','DEC')
+
+entrance$country = gsub(" ", "", entrance$country)
+# 특정 문자열을 찾아 원하는 문자로 한 번에 변경.
+head(entrance)
+```
+## 상위 5개국 추출하기
+```{r}
+entrance %>% nrow()
+top5 = entrance[order(-entrance$JAN),] %>% head(5)
+top5
+```
+## 시각화를 위한 데이터 재구조화
+```{r}
+library(reshape2)
+top5_melt = melt(top5, id.vars = 'country', variable.name = 'mon')
+head(top5_melt)
+```
+## 데이터 시각화하기
+```{r}
+library(ggplot2)
+ggplot(top5_melt, aes(x = mon, y = value, group = country)) + 
+  geom_line(aes(color = country)) 
+  # 국가별로 색을 다르게.
+```
+```{r}
+ggplot(top5_melt, aes(x = mon, y = value, group = country)) + 
+  geom_line(aes(color = country)) +
+  ggtitle('2020년 국적별 입국 수 변화 추이') +
+  scale_y_continuous(breaks = seq(0,500000,50000))
+  # y축의 범위를 조정.
+```
+## 5개국 전체 수의 변화
+```{r}
+# 일단 기본 막대그래프 그리기
+ggplot(top5_melt, aes(x = mon, y = value, fill = country)) +
+  geom_bar(stat = 'identity', position = 'dodge')
+
+# 누적 막대 그래프 그리기.
+ggplot(top5_melt, aes(x = mon, y = value, fill = country)) +
+  geom_bar(stat = 'identity', position = 'stack')
+```
+
+
+# 지도에서 코로나19 선별진료소 위치 확인하기
+
+## 데이터 전처리하기
+```{r}
+xlsdata = read_excel('C:/Rstudy/선별진료소.xls')
+View(xlsdata)
+
+data_raw = xlsdata[,c(2:5)]
+head(data_raw)
+# 필요한 열만 추출.
+
+names(data_raw) = c('state','city','name','addr')
+# 칼럼명 변경.
+```
+## 데이터 빈도분석하기
+```{r}
+table(data_raw$state) %>% barplot()
+```
+## 대전시 데이터만 추출하여 시각화
+```{r}
+dj = data_raw[data_raw$state == '대전',]
+head(dj)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
