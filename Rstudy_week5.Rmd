@@ -1,0 +1,160 @@
+---
+title: "Untitled"
+author: "DKLee"
+date: "2023-11-19"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 지도에서 코로나19 선별진료소 위치 확인하기
+
+ 데이터 전처리하기
+```{r}
+library(readxl)
+xlsdata = read_excel('C:/Rstudy/선별진료소.xls')
+View(xlsdata)
+
+data_raw = xlsdata[,c(2:5)]
+head(data_raw)
+# 필요한 열만 추출.
+
+names(data_raw) = c('state','city','name','addr')
+# 칼럼명 변경.
+```
+데이터 빈도분석하기
+```{r}
+library(dplyr)
+
+table(data_raw$state) %>% barplot()
+```
+
+```{r}
+dj_data = data_raw[data_raw$state=='대전',]
+head(dj_data)
+```
+```{r}
+library(ggmap)
+ggmap_key = "사용자 API 키를 입력하세요."
+register_google(ggmap_key)
+dj_data = mutate_geocode(data = dj_data, location = addr,
+                         source = 'google')
+head(dj_data)
+head(dj_data$lon)
+```
+```{r}
+dj_map = get_googlemap('대전', maptype = 'roadmap', zoom = 11)
+ggmap(dj_map) +
+  geom_point(data = dj_data,
+             aes(x = lon, y = lat, color = factor(name)), size = 3)
+
+
+```
+마커로 위치 표시, 이름 넣기
+```{r}
+dj_data_marker = data.frame(dj_data$lon, dj_data$lat)
+dj_map = get_googlemap('대전', maptype = 'roadmap',
+                       zoom = 11, markers = dj_data_marker)
+ggmap(dj_map) +
+  geom_text(data = dj_data, aes(x = lon, y = lat),
+            size = 3, label = dj_data$name)
+
+```
+
+
+# 서울시 지역별 미세먼지 농도 차이 비교하기
+
+필요한 데이터 추출하기
+```{r}
+library(readxl)
+dust = read_excel('C:/Rstudy/dustdata.xlsx')
+
+str(dust)
+```
+```{r}
+library(dplyr)
+dust_anal = dust[, c('날짜','성북구','중구')]
+head(dust_anal)
+sum(is.na(dust_anal))
+```
+데이터 탐색 및 시각화
+```{r}
+library(psych)
+
+describe(dust_anal$성북구)
+describe(dust_anal$중구)
+```
+```{r}
+boxplot(dust_anal$성북구, dust_anal$중구,
+        main = 'finedust_compare', xlab = 'AREA', names = c('성북구','중구'),
+        ylab = 'FINEDUST_PM', col = c('red', 'darkgreen'))
+```
+가설 검정하기
+
+f 검정으로 분산 차이 검정
+```{r}
+var.test(dust_anal$중구, dust_anal$성북구)
+```
+p-value > 0.05 이므로 H0 기각 못 함.
+ -> 등분산이다.
+ 
+t 검정으로 평균 차이 검정
+```{r}
+t.test(dust_anal$중구, dust_anal$성북구, var.equal = TRUE)
+```
+p-value > 0.05 이므로 H0 기각 못 함.
+ -> 평균 동일함
+ 
+세 개 이상의 집단 간 평균 차이 검정하기
+```{r}
+exdata = read_excel('C:/Rstudy/Sample1.xlsx')
+
+boxplot(formula = Y20_CNT ~ AREA, data = exdata)
+```
+```{r}
+anova(lm(Y20_CNT ~ AREA, data = exdata))
+```
+p-value > 0.05 이므로 세 집단의 차이가 유의하지 않다.
+
+일원분산분석
+```{r}
+oneway.test(data = exdata, Y20_CNT ~ AREA, var.equal = TRUE)
+```
+p-value > 0.05 이므로 평균차이 없다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
